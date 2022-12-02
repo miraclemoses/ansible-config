@@ -1,31 +1,47 @@
  pipeline {
-    agent any
-    environment {
-        // withEnv pipeline syntax fails so resort to environment
-        ANSIBLE_CONFIG = "${WORKSPACE}/deploy/ansible.cfg"
-        COLLECTIONS_PATHS = "~/.ansible/collections"
+  agent any
+
+  environment {
+      ANSIBLE_CONFIG="${WORKSPACE}/deploy/ansible.cfg"
     }
 
-    stages {
-        stage('SCM Checkout') {
-            steps{
-                git branch: 'main', url: 'https://github.com/MekkyMayata/ansible-config-mgt.git'
-            }
-        }
-
-        stage('Execute Ansible') {
-            steps{
-                sh 'whoami'
-                echo "$ANSIBLE_CONFIG"
-                echo "$COLLECTIONS_PATHS"
-                ansiblePlaybook credentialsId: 'private-key', disableHostKeyChecking: true, installation: 'ansible', inventory: 'inventory/dev', playbook: 'playbooks/site.yml'
-            }
-        }
-
-        stage('Clean workspace on condition (True)') {
-            steps{
-                cleanWs cleanWhenSuccess: false, cleanWhenUnstable: false
-            }
-        }
+  parameters {
+      string(name: 'inventory', defaultValue: 'dev',  description: 'This is the inventory file for the environment to deploy configuration')
     }
+
+  stages{
+      stage("Initial cleanup") {
+          steps {
+            dir("${WORKSPACE}") {
+              deleteDir()
+            }
+          }
+        }
+
+      stage('Checkout SCM') {
+         steps{
+            git branch: 'main', url: 'https://github.com/miraclemoses/ansible-config.git'
+         }
+       }
+
+      stage('Prepare Ansible For Execution') {
+        steps {
+          sh 'echo ${WORKSPACE}' 
+          sh 'sed -i "3 a roles_path=${WORKSPACE}/roles" ${WORKSPACE}/deploy/ansible.cfg'  
+        }
+     }
+
+      stage('Run Ansible playbook') {
+        steps {
+           ansiblePlaybook become: true, colorized: true, credentialsId: 'private-key', disableHostKeyChecking: true, installation: 'ansible', inventory: 'inventory/${inventory}', playbook: 'playbooks/site.yml'
+         }
+      }
+
+      stage('Clean Workspace after build'){
+        steps{
+          cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, deleteDirs: true)
+        }
+      }
+   }
+
 }
