@@ -20,7 +20,7 @@
 
       stage('Checkout SCM') {
          steps{
-            git branch: 'main', url: 'https://github.com/miraclemoses/ansible-config.git'
+            git branch: 'feature/jenkinspipelines-stages', url: 'https://github.com/miraclemoses/ansible-config.git'
          }
        }
 
