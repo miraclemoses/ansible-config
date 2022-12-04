@@ -3,6 +3,6 @@
 
 
 [db]
-172.31.82.126 ansible_ssh_user='ec2-user'
+172.31.82.28 ansible_ssh_user='ubuntu'
 
 
